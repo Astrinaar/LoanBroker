@@ -14,6 +14,7 @@ public class Recv {
 
         ConnectionFactory factory;
         factory = new ConnectionFactory();
+        //jkhjj
         factory.setHost("localhost");
         Connection connection = null;
         try {
