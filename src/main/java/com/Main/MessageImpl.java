@@ -1,4 +1,4 @@
-package Main;
+package com.Main;
 
 import javax.jws.WebService;
 
