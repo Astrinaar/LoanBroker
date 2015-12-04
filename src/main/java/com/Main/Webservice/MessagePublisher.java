@@ -1,4 +1,4 @@
-package com.Main;
+package com.Main.Webservice;
 
 import javax.xml.ws.Endpoint;
 
