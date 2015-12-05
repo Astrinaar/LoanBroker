@@ -1,4 +1,4 @@
-package com.Main.Webservice;
+package com.Webservice.LoanRequestWebservice;
 
 import javax.jws.WebMethod;
 import javax.jws.WebService;
@@ -9,5 +9,5 @@ import java.io.IOException;
 @SOAPBinding(style = SOAPBinding.Style.DOCUMENT, use = SOAPBinding.Use.LITERAL) //optional
 public interface Message {
     @WebMethod
-    void loanRequest(int ssn, int loanAmount, int loanDurationInMonths) throws IOException;
+    void loanRequest(String ssn, int loanAmount, int loanDurationInMonths) throws IOException;
 }
