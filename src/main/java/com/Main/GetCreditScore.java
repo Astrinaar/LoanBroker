@@ -17,7 +17,7 @@ public class GetCreditScore {
 
     public static String getCreditScore(String ssn) {
         CreditScoreService_Service sis = new CreditScoreService_Service();
-        		CreditScoreService si = sis.getCreditScoreServicePort();
+        CreditScoreService si = sis.getCreditScoreServicePort();
         return String.valueOf(si.creditScore(ssn));
     }
 
