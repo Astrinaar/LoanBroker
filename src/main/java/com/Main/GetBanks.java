@@ -33,11 +33,11 @@ public class GetBanks {
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    public static void sendBankToRuleBase(int SSN) {
+    public static void sendBankToRuleBase(int creditScore) {
         RuleBaseImplService sis = new RuleBaseImplService();
         RuleBase si = sis.getRuleBaseImplPort();
         try {
-            si.getRuleBase(SSN);
+            si.getRuleBase(creditScore);
 
         } catch (IOException_Exception e) {
             e.printStackTrace();
