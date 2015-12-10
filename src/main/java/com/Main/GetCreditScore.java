@@ -7,7 +7,8 @@ import com.rabbitmq.client.*;
 import java.io.IOException;
 
 public class GetCreditScore {
-    private final static String Routing_Key = "SSN";
+    private final static String QUEUE_NAME_RECEIVE = "loanRequest";
+    private final static String QUEUE_NAME_SEND = "creditScore";
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
 
     public static void main(String[] argv) throws IOException {
@@ -23,7 +24,7 @@ public class GetCreditScore {
     public static void getSSNValue() throws IOException {
         Connection connection = rabbitMQUtil.connectToRabbitMQ();
         Channel channel = connection.createChannel();
-        channel.queueDeclare(Routing_Key, false, false, false, null);
+        channel.queueDeclare(QUEUE_NAME_RECEIVE, false, false, false, null);
         System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
 
         Consumer consumer = new DefaultConsumer(channel) {
@@ -37,7 +38,7 @@ public class GetCreditScore {
                 }
             }
         };
-        channel.basicConsume(Routing_Key, true, consumer);
+        channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
     public static void sendToGetBanks(String ssn) throws IOException {
@@ -46,10 +47,10 @@ public class GetCreditScore {
             String returnedCreditScore = getCreditScore(String.valueOf(ssn));
             System.out.println(" [x] Send Credit Score " +returnedCreditScore+ " from SSN " + "'" + ssn + "'" +" to Group4.GetBanks");
             Channel channel = connection.createChannel();
-            channel.queueDeclare("CreditScore", false, false, false,null);
+            channel.queueDeclare(QUEUE_NAME_SEND, false, false, false,null);
 
             channel.exchangeDeclare("Group4.GetBanks","fanout");
-            channel.basicPublish("", "CreditScore", null, returnedCreditScore.getBytes());
+            channel.basicPublish("", QUEUE_NAME_SEND, null, returnedCreditScore.getBytes());
         }
     }
 

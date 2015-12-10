@@ -9,7 +9,7 @@ import com.rabbitmq.client.*;
 import java.io.IOException;
 
 public class GetBanks {
-    private final static String Routing_Key = "SSN";
+    private final static String QUEUE_NAME_RECEIVE = "creditScore";
 
     public static void main(String[] argv)
             throws java.io.IOException,
@@ -19,7 +19,7 @@ public class GetBanks {
         Connection connection = util.connectToRabbitMQ();
         Channel channel = connection.createChannel();
 
-        channel.queueDeclare(Routing_Key, false, false, false, null);
+        channel.queueDeclare(QUEUE_NAME_RECEIVE, false, false, false, null);
 
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
@@ -30,7 +30,7 @@ public class GetBanks {
                 sendBankToRuleBase(Integer.parseInt(message));
             }
         };
-        channel.basicConsume(Routing_Key, true, consumer);
+        channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
     public static void sendBankToRuleBase(int SSN) {
