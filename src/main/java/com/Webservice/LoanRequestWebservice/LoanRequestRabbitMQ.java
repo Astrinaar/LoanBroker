@@ -17,7 +17,7 @@ public class LoanRequestRabbitMQ {
             channel = connection.createChannel();
             channel.queueDeclare(QUEUE_NAME_SEND, false, false, false,null);
             //for (int i = 0; i < Integer.MAX_VALUE; i++) {
-            System.out.println("Sending SSN "+ "'" + ssn + "'" +" To Group4.GetCreditScore");
+            System.out.println(" [x] Sending SSN "+ "'" + ssn + "'" +" To Group4.GetCreditScore");
             channel.exchangeDeclare("Group4.GetCreditScore","fanout");
             channel.basicPublish("", QUEUE_NAME_SEND, null, ssn.getBytes());
             try {

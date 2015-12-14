@@ -1,5 +1,6 @@
 package com.Util;
 
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
@@ -22,5 +23,20 @@ public class RabbitMQUtil {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Channel createQueue (String QUEUE_NAME_RECEIVE) {
+        Connection connection = connectToRabbitMQ();
+        Channel channel = null;
+        try {
+            channel = connection.createChannel();
+            channel.queueDeclare(QUEUE_NAME_RECEIVE, false, false, false, null);
+            System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+            return channel;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+
     }
 }

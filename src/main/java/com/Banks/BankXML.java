@@ -1,40 +1,31 @@
-package com.Main;
+package com.Banks;
 
-import com.Client.RuleBase.IOException_Exception;
-import com.Client.RuleBase.RuleBase;
-import com.Client.RuleBase.RuleBaseImplService;
 import com.Util.RabbitMQUtil;
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
 
-public class GetBanks {
+public class BankXML {
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     private final static String QUEUE_NAME_RECEIVE = "creditScore";
-
     public static void main(String[] argv) throws IOException {
+        getLoanRequest("080889-8989" , "222", "1111", "10");
+
+    }
+
+    public static void getLoanRequest (String ssn, String creditScore, String loanAmount, String loanDuration)throws IOException {
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
+        channel.exchangeDeclare("cphbusiness.bankXML", "fanout");
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 String message = new String(body, "UTF-8");
-                System.out.println(" [x] Received '" + message + "'");
-                sendBankToRuleBase(Integer.parseInt(message));
+                if (!message.equals("-1")) {
+                    System.out.println(" [x] Received '" + message + "'");
+                }
             }
         };
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
-    }
-
-    public static void sendBankToRuleBase(int creditScore) {
-        RuleBaseImplService sis = new RuleBaseImplService();
-        RuleBase si = sis.getRuleBaseImplPort();
-        try {
-            si.getRuleBase(creditScore);
-
-        } catch (IOException_Exception e) {
-            e.printStackTrace();
-        }
-    }
-
+    };
 }

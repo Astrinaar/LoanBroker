@@ -22,11 +22,7 @@ public class GetCreditScore {
     }
 
     public static void getSSNValue() throws IOException {
-        Connection connection = rabbitMQUtil.connectToRabbitMQ();
-        Channel channel = connection.createChannel();
-        channel.queueDeclare(QUEUE_NAME_RECEIVE, false, false, false, null);
-        System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
-
+        Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)

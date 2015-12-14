@@ -8,9 +8,9 @@ public class LoanRequestClient {
     public static void main(String[] argv) {
         MessageImplService sis = new MessageImplService();
         Message si = sis.getMessageImplPort();
-        String ssn = "080808-0808";
+        String ssn = "080878-0808";
         try {
-            System.out.println("Sending SSN: " + ssn);
+            System.out.println(" [x] Sending SSN: " + ssn);
             si.loanRequest(ssn, 0, 0);
 
         } catch (IOException_Exception e) {
