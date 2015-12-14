@@ -8,7 +8,7 @@ import java.io.IOException;
 public class MessageImpl implements Message {
 
 	@Override
-	public void loanRequest(String ssn, int loanAmount, int loanDurationInMonths) {
+	public void loanRequest(String ssn, String loanAmount, String loanDurationInMonths) {
         LoanRequestRabbitMQ loanRequestRabbitMQ = new LoanRequestRabbitMQ();
         try {
             loanRequestRabbitMQ.startSendToMQ(ssn, loanAmount, loanDurationInMonths);

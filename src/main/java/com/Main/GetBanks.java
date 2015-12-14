@@ -1,16 +1,21 @@
 package com.Main;
 
-import com.Client.RuleBase.IOException_Exception;
-import com.Client.RuleBase.RuleBase;
-import com.Client.RuleBase.RuleBaseImplService;
+import com.Client.RuleBaseClient.IOException_Exception;
+import com.Client.RuleBaseClient.RuleBase;
+import com.Client.RuleBaseClient.RuleBaseImplService;
+import com.Model.LoanObject;
 import com.Util.RabbitMQUtil;
+import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 public class GetBanks {
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     private final static String QUEUE_NAME_RECEIVE = "creditScore";
+    private final static String QUEUE_NAME_SEND = "recipListAndBanks";
 
     public static void main(String[] argv) throws IOException {
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
@@ -18,21 +23,41 @@ public class GetBanks {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
-                String message = new String(body, "UTF-8");
-                System.out.println(" [x] Received '" + message + "'");
-                sendBankToRuleBase(Integer.parseInt(message));
+                try {
+                    LoanObject loanObject = StringByteHelper.fromByteArrayToObject(body);
+                    System.out.println(" [x] Received '" + loanObject.toString() + "'");
+                    sendBankToRuleBase(loanObject);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+
             }
         };
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    public static void sendBankToRuleBase(int creditScore) {
+    public static void sendBankToRuleBase(LoanObject loanObject) {
         RuleBaseImplService sis = new RuleBaseImplService();
         RuleBase si = sis.getRuleBaseImplPort();
         try {
-            si.getRuleBase(creditScore);
+            startSendToMQ(loanObject, si.getRuleBase(Integer.parseInt(loanObject.getCreditScore())));
 
         } catch (IOException_Exception e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void startSendToMQ(LoanObject loanObject, List<String> banks) throws IOException {
+        RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
+        Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_SEND);
+        loanObject.setBanks(banks);
+
+        channel.basicPublish("", QUEUE_NAME_SEND, null, StringByteHelper.fromObjectToByteArray(loanObject));
+        try {
+            channel.close();
+        } catch (TimeoutException e) {
             e.printStackTrace();
         }
     }

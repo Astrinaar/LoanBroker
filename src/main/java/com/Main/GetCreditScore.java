@@ -1,7 +1,9 @@
 package com.Main;
 
 import com.Client.CreditScoreService.*;
+import com.Model.LoanObject;
 import com.Util.RabbitMQUtil;
+import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
@@ -27,26 +29,29 @@ public class GetCreditScore {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
-                String message = new String(body, "UTF-8");
-                if(!message.equals("-1")) {
-                    System.out.println(" [x] Received '" + message + "'");
-                    sendToGetBanks(message);
+                try {
+                    sendToGetBanks(StringByteHelper.fromByteArrayToObject(body));
+                    System.out.println(" [x] Received body and converted array to loan object");
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
                 }
             }
         };
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    public static void sendToGetBanks(String ssn) throws IOException {
+    public static void sendToGetBanks(LoanObject loanObject) throws IOException {
         Connection connection = rabbitMQUtil.connectToRabbitMQ();
         if (connection != null) {
-            String returnedCreditScore = getCreditScore(String.valueOf(ssn));
-            System.out.println(" [x] Send Credit Score " +returnedCreditScore+ " from SSN " + "'" + ssn + "'" +" to Group4.GetBanks");
+            String returnedCreditScore = getCreditScore(loanObject.getSsn());
+            System.out.println(" [x] Send Credit Score " +returnedCreditScore+ " from SSN " + "'" + loanObject.getSsn() + "'" +" to Group4.GetBanks");
             Channel channel = connection.createChannel();
             channel.queueDeclare(QUEUE_NAME_SEND, false, false, false,null);
 
-            channel.exchangeDeclare("Group4.GetBanks","fanout");
-            channel.basicPublish("", QUEUE_NAME_SEND, null, returnedCreditScore.getBytes());
+            loanObject.setCreditScore(returnedCreditScore);
+
+            //channel.exchangeDeclare("Group4.GetBanks","fanout");
+            channel.basicPublish("", QUEUE_NAME_SEND, null, StringByteHelper.fromObjectToByteArray(loanObject));
         }
     }
 
