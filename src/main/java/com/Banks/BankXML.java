@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public class BankXML {
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-    private final static String QUEUE_NAME_RECEIVE = "creditScore";
+    private final static String QUEUE_NAME_RECEIVE = "BankXML";
     public static void main(String[] argv) throws IOException {
         getLoanRequest("080889-8989" , "222", "1111", "10");
 
