@@ -41,4 +41,18 @@ public class RabbitMQUtil {
         }
 
     }
+
+    public Channel createExchange (String EXCHANGE_NAME){
+        Connection connection = connectToRabbitMQ();
+        Channel channel;
+
+        try {
+            channel = connection.createChannel();
+            channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+            return channel;
+        } catch (IOException e){
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

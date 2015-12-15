@@ -23,7 +23,7 @@ public class RecipList {
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 try {
-                    LoanObject loanObject = StringByteHelper.fromByteArrayToObject(body);
+                    LoanObject loanObject = (LoanObject)StringByteHelper.fromByteArrayToObject(body);
                     System.out.println(" [x] Received '" + loanObject.toString() + "'");
                     List<String> banks = loanObject.getBanks();
                     for (String bank : banks) {

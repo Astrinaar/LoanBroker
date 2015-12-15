@@ -6,8 +6,11 @@ import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
 import org.json.JSONObject;
 
+
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -16,7 +19,7 @@ import java.util.concurrent.TimeoutException;
 public class JsonTranslator {
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     private final static String QUEUE_NAME_RECEIVE = "jsonTranslator";
-    private final static String QUEUE_NAME_SEND = "bank";
+    private final static String EXCHANGE_NAME_SEND = "cphbusiness.bankJSON";
 
     public static void main(String[] argv) throws IOException {
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
@@ -25,7 +28,7 @@ public class JsonTranslator {
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 try {
-                    LoanObject loanObject = StringByteHelper.fromByteArrayToObject(body);
+                    LoanObject loanObject = (LoanObject)StringByteHelper.fromByteArrayToObject(body);
                     System.out.println(" [x] Received '" + loanObject.toString() + "'");
                     JSONObject loanRequestJSON = JSONTranslator(loanObject);
                     startSendToMQ(loanRequestJSON);
@@ -40,8 +43,11 @@ public class JsonTranslator {
     }
 
     public static JSONObject JSONTranslator (LoanObject loanObject) {
-
-        JSONObject JSONBank = new JSONObject().put("ssn", loanObject.getSsn());
+        String stringSsn = loanObject.getSsn();
+        stringSsn = stringSsn.replace("-","");
+        System.out.println(stringSsn);
+        int ssn = Integer.parseInt(stringSsn);
+        JSONObject JSONBank = new JSONObject().put("ssn", ssn);
         JSONBank.put("creditScore", loanObject.getCreditScore());
         JSONBank.put("loanAmount", loanObject.getLoanAmount());
         JSONBank.put("loanDuration", loanObject.getLoanDuration());
@@ -51,10 +57,16 @@ public class JsonTranslator {
     }
     public static void startSendToMQ(JSONObject JSONBank) throws IOException {
         RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-        Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_SEND);
+        Channel channel = rabbitMQUtil.createExchange(EXCHANGE_NAME_SEND);
+
+        AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties().builder();
+       // Map<String, Object> headers = new HashMap<String, Object>();
+       // headers.put("reply-to", "jsonreply4");
+       // properties.headers(headers);
+        properties.replyTo("jsonreply4");
 
 
-        channel.basicPublish("", QUEUE_NAME_SEND, null, JSONBank.toString().getBytes());
+        channel.basicPublish(EXCHANGE_NAME_SEND, "", properties.build(), JSONBank.toString().getBytes());
         try {
             channel.close();
         } catch (TimeoutException e) {

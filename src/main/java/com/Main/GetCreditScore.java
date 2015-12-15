@@ -31,7 +31,7 @@ public class GetCreditScore {
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 try {
-                    LoanObject loanObject = StringByteHelper.fromByteArrayToObject(body);
+                    LoanObject loanObject = (LoanObject)StringByteHelper.fromByteArrayToObject(body);
                     sendToGetBanks(loanObject);
                     System.out.println(" [x] Received body and converted array to loan object");
                 } catch (ClassNotFoundException e) {
