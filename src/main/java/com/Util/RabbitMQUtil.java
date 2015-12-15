@@ -27,11 +27,13 @@ public class RabbitMQUtil {
 
     public Channel createQueue (String QUEUE_NAME_RECEIVE) {
         Connection connection = connectToRabbitMQ();
-        Channel channel = null;
+        Channel channel;
         try {
             channel = connection.createChannel();
             channel.queueDeclare(QUEUE_NAME_RECEIVE, false, false, false, null);
+
             System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+
             return channel;
         } catch (IOException e) {
             e.printStackTrace();

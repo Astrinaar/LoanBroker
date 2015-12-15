@@ -5,6 +5,7 @@ import com.Model.LoanObject;
 import com.Util.RabbitMQUtil;
 import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
+import com.sun.org.apache.xpath.internal.SourceTree;
 
 import java.io.IOException;
 
@@ -30,9 +31,11 @@ public class GetCreditScore {
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 try {
-                    sendToGetBanks(StringByteHelper.fromByteArrayToObject(body));
+                    LoanObject loanObject = StringByteHelper.fromByteArrayToObject(body);
+                    sendToGetBanks(loanObject);
                     System.out.println(" [x] Received body and converted array to loan object");
                 } catch (ClassNotFoundException e) {
+                    System.out.println(e.getMessage());
                     e.printStackTrace();
                 }
             }

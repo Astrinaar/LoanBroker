@@ -11,10 +11,12 @@ public class LoanObject implements Serializable {
     String loanDuration;
     List<String> banks;
 
-    public LoanObject(String ssn, String loanAmount, String loanDuration) {
+    public LoanObject(String ssn, String creditScore, String loanAmount, String loanDuration, List<String> banks) {
         this.ssn = ssn;
+        this.creditScore = creditScore;
         this.loanAmount = loanAmount;
         this.loanDuration = loanDuration;
+        this.banks = banks;
     }
 
     public String getSsn() {
@@ -64,6 +66,7 @@ public class LoanObject implements Serializable {
                 ", creditScore='" + creditScore + '\'' +
                 ", loanAmount='" + loanAmount + '\'' +
                 ", loanDuration='" + loanDuration + '\'' +
+                ", banks=" + banks +
                 '}';
     }
 }
