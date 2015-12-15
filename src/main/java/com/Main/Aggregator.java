@@ -41,7 +41,7 @@ public class Aggregator {
                 try {
                     ReplyObject replyObject = (ReplyObject)StringByteHelper.fromByteArrayToObject(body);
                     sendBestQuote(replyObject);
-                    System.out.println(" [x] Received body and converted array to loan object");
+                    System.out.println(" [x] Received body and converted array to reply object");
                 } catch (ClassNotFoundException e) {
                     System.out.println(e.getMessage());
                     e.printStackTrace();
