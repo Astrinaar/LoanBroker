@@ -17,33 +17,27 @@ import java.util.concurrent.TimeoutException;
 public class MessageImpl implements Message {
 
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-    private final static String QUEUE_NAME_RECEIVE = "jsonTranslator";
+    private final static String QUEUE_NAME_RECEIVE = "bestQuote";
     private final static String QUEUE_NAME_SEND = "loanRequest";
     ReplyObject replyObject = null;
 
 
-	@Override
-	public ReplyObject loanRequest(String ssn, String loanAmount, String loanDurationInMonths) {
-        Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
+    @Override
+    public ReplyObject loanRequest(String ssn, String loanAmount, String loanDurationInMonths) {
+
         try {
 
-          startSendToMQ(ssn, loanAmount, loanDurationInMonths);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        while (replyObject == null){
+            startSendToMQ(ssn, loanAmount, loanDurationInMonths);
             lookForReply();
-        }
 
-        try {
-            channel.close();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
+        }
+
+        while (replyObject == null) {
         }
         return replyObject;
+
     }
 
     public void startSendToMQ(String ssn, String loanAmount, String loanDurationInMonths) throws IOException {
@@ -64,29 +58,31 @@ public class MessageImpl implements Message {
         }
     }
 
-    public void lookForReply(){
+    public void lookForReply()throws IOException {
 
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
-try {
-                replyObject = (ReplyObject) StringByteHelper.fromByteArrayToObject(body);
+                try {
+                    replyObject = (ReplyObject) StringByteHelper.fromByteArrayToObject(body);
 
 
-            } catch (ClassNotFoundException e) {
+                } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }
         };
 
-        try {
             channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
-        } catch (IOException e) {
+
+
+        try {
+            channel.close();
+        }catch (TimeoutException e) {
             e.printStackTrace();
         }
-
 
     }
 

@@ -3,8 +3,9 @@ package com.Main;
 import com.Client.MessageClient.IOException_Exception;
 import com.Client.MessageClient.Message;
 import com.Client.MessageClient.MessageImplService;
+import com.Client.MessageClient.ReplyObject;
 import com.Model.LoanObject;
-import com.Model.ReplyObject;
+
 
 public class LoanRequestClient {
     public static void main(String[] argv) {
@@ -16,6 +17,7 @@ public class LoanRequestClient {
         try {
             System.out.println(" [x] Sending loanObject");
            ReplyObject replyObject  =  si.loanRequest(ssn, loanObject.getLoanAmount(), loanObject.getLoanDuration());
+            System.out.println(replyObject.toString());
 
         } catch (IOException_Exception e) {
             e.printStackTrace();
