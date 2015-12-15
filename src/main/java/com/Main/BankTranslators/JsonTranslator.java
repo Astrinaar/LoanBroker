@@ -8,9 +8,6 @@ import org.json.JSONObject;
 
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -60,9 +57,6 @@ public class JsonTranslator {
         Channel channel = rabbitMQUtil.createExchange(EXCHANGE_NAME_SEND);
 
         AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties().builder();
-       // Map<String, Object> headers = new HashMap<String, Object>();
-       // headers.put("reply-to", "jsonreply4");
-       // properties.headers(headers);
         properties.replyTo("jsonreply4");
 
 
