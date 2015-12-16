@@ -17,7 +17,7 @@ public class LoanRequestClient {
         try {
             System.out.println(" [x] Sending loanObject");
            ReplyObject replyObject  =  si.loanRequest(ssn, loanObject.getLoanAmount(), loanObject.getLoanDuration());
-            System.out.println(replyObject.toString());
+            System.out.println(replyObject.getIntrestRate());
 
         } catch (IOException_Exception e) {
             e.printStackTrace();

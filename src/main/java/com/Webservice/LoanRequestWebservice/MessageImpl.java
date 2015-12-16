@@ -66,24 +66,14 @@ public class MessageImpl implements Message {
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 try {
-                    replyObject = (ReplyObject) StringByteHelper.fromByteArrayToObject(body);
-
-
+                    replyObject = (ReplyObject)StringByteHelper.fromByteArrayToObject(body);
                 } catch (ClassNotFoundException e) {
+                    System.out.println(e.getMessage());
                     e.printStackTrace();
                 }
             }
         };
-
-            channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
-
-
-        try {
-            channel.close();
-        }catch (TimeoutException e) {
-            e.printStackTrace();
-        }
-
+        channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
 }
