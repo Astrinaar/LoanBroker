@@ -33,6 +33,7 @@ public class Aggregator {
     private final static String QUEUE_NAME_SEND = "bestQuote";
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     static List<ReplyObject> waitingList = new ArrayList<ReplyObject>(); // List of pending banks
+    static int waitingTime = 60000;
 
     public static void main(String[] argv) throws IOException {
         getBestQuote();
@@ -102,14 +103,14 @@ public class Aggregator {
                 iterator = waitingList.get(i);
                 System.out.println(iterator);
                 pastDatetimeMilliseconds = iterator.getTimestamp();
-                if(pastDatetimeMilliseconds + 60000 > currentDatetimeMilliseconds
+                if(pastDatetimeMilliseconds + waitingTime > currentDatetimeMilliseconds
                 && pastDatetimeMilliseconds != currentDatetimeMilliseconds) {
                     sendBestQuote(iterator);
                     waitingList.remove(i);
                 }
             }
             try {
-                Thread.sleep(60000);                 //1000 milliseconds is one second.
+                Thread.sleep(waitingTime);                 //1000 milliseconds is one second.
             } catch(InterruptedException ex) {
                 Thread.currentThread().interrupt();
             }
