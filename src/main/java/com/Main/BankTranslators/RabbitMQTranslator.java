@@ -1,20 +1,23 @@
-package com.Main;
+package com.Main.BankTranslators;
 
-import com.Client.MessageClient.LoanRequest;
 import com.Model.LoanObject;
 import com.Util.RabbitMQUtil;
 import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-public class RecipList {
+/**
+ * Created by Sean Emerson on 17-12-2015.
+ */
+public class RabbitMQTranslator {
 
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-    private final static String QUEUE_NAME_RECEIVE = "recipListAndBanks";
-    //private final static String QUEUE_NAME_SEND;
+    private final static String QUEUE_NAME_RECEIVE = "bankRabbitMQTranslator";
+    private final static String EXCHANGE_NAME_SEND = "bankRabbitMQ";
 
     public static void main(String[] argv) throws IOException {
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
@@ -23,18 +26,9 @@ public class RecipList {
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 try {
-                    LoanObject loanObject = (LoanObject)StringByteHelper.fromByteArrayToObject(body);
+                    LoanObject loanObject = (LoanObject) StringByteHelper.fromByteArrayToObject(body);
                     System.out.println(" [x] Received '" + loanObject.toString() + "'");
-                    List<String> banks = loanObject.getBanks();
-                    for (String bank : banks) {
-                        if (bank.equals("bankJson")) {
-                            startSendToMQ("jsonTranslator", loanObject);
-                        }
-
-                        if (bank.equals("bankRabbitMQ")) {
-                            startSendToMQ("bankRabbitMQTranslator", loanObject);
-                        }
-                    }
+                    startSendToMQ(loanObject);
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -43,11 +37,19 @@ public class RecipList {
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    public static void startSendToMQ(String channelName, LoanObject loanObject) throws IOException {
+    public static void startSendToMQ(LoanObject loanObject) throws IOException {
         RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-        Channel channel = rabbitMQUtil.createQueue(channelName);
+        Channel channel = rabbitMQUtil.createExchange(EXCHANGE_NAME_SEND);
 
-        channel.basicPublish("", channelName, null, StringByteHelper.fromObjectToByteArray(loanObject));
+        AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties().builder();
+        properties.replyTo("rabbitMQreply4");
+
+        String message = "" + loanObject.getSsn()
+                + "," + loanObject.getCreditScore()
+                + "," + loanObject.getLoanAmount()
+                + "," + loanObject.getLoanDuration();
+
+        channel.basicPublish(EXCHANGE_NAME_SEND, "", properties.build(), message.getBytes());
         try {
             channel.close();
         } catch (TimeoutException e) {

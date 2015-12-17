@@ -21,7 +21,7 @@ public class RuleBaseImpl implements RuleBase {
             strings.add("bankWebservice");
         }
         if (bankBob(creditScore)) {
-            strings.add("bankBob");
+            strings.add("bankRabbitMQ");
         }
         return strings;
     }
@@ -36,7 +36,7 @@ public class RuleBaseImpl implements RuleBase {
         return creditScore >= 500;
     }
     public boolean bankBob(int creditScore) {
-        return creditScore >= 700;
+        return creditScore >= 100;
     }
 
 }

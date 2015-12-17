@@ -53,7 +53,7 @@ public class GetBanks {
         RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_SEND);
         loanObject.setBanks(banks);
-
+        System.out.println(loanObject.toString() + "Sending to RecipList");
         channel.basicPublish("", QUEUE_NAME_SEND, null, StringByteHelper.fromObjectToByteArray(loanObject));
         try {
             channel.close();
