@@ -28,8 +28,10 @@ public class BankRabbitMQ {
                 String EXCHANGE_NAME_SEND;
                 if(properties.getReplyTo() != null) {
                   EXCHANGE_NAME_SEND = properties.getReplyTo().intern();
+                    System.out.println("Received");
                 }
                 else {EXCHANGE_NAME_SEND = EXCHANGE_NAME_RECEIVE; }
+
 
 
                 String reply = new String(body, StandardCharsets.UTF_8);
