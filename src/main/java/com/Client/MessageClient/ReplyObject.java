@@ -104,4 +104,15 @@ public class ReplyObject {
         this.ssn = value;
     }
 
+    @Override
+    public String toString() {
+        return "ReplyObject{" +
+                "intrestRate=" + intrestRate +
+                ", ssn=" + ssn +
+                ", bankName='" + bankName + '\'' +
+                '}';
+    }
+    
+    
+
 }
