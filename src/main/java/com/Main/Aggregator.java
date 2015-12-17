@@ -32,10 +32,11 @@ public class Aggregator {
     private final static String QUEUE_NAME_RECEIVE = "aggregator";
     private final static String QUEUE_NAME_SEND = "bestQuote";
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-    static List<ReplyObject> waitingListPrime = new ArrayList<ReplyObject>(); // List of pending banks
+    static List<ReplyObject> waitingList = new ArrayList<ReplyObject>(); // List of pending banks
 
     public static void main(String[] argv) throws IOException {
         getBestQuote();
+        messageMediator();
     }
 
     public static void getBestQuote() throws IOException {
@@ -46,72 +47,31 @@ public class Aggregator {
                     throws IOException {
                 try {
                     ReplyObject replyObject = (ReplyObject)StringByteHelper.fromByteArrayToObject(body);
-                    List<ReplyObject> waitingList = getWaitingList();
                     
-                    BigDecimal bd = new BigDecimal(0); // blaaaaaaaargh :(
-                    ReplyObject iterator = new ReplyObject("",0,bd); // Duh
                     Date currentDatetime = new Date(); // If no SSN is in already we gotta put on a timestamp
                     boolean existsFlag = false; // Used to determine if SSN is already in
                     long currentDatetimeMilliseconds = currentDatetime.getTime(); // Used to check how time has passed
-                    long pastDatetimeMilliseconds = 0; // Ditto
+                    
+                    existsFlag = addExistingSSN(replyObject, currentDatetimeMilliseconds);
+                    addNewSSN(existsFlag, replyObject, currentDatetimeMilliseconds);
                     
                     
-                    // First check if we got a matching SSN, AKA we already had
-                    // one response for a user and thus need to compare which
-                    // interest rate is better.
-                    // Two ifs for clarity and because we need to make sure we
-                    // don't make duplicate SSNs
-                    for (int i = 0; i < waitingList.size(); i++) {
-                        iterator = waitingList.get(i);
-                        System.out.println("In 1");
-                        System.out.println(iterator + "  " + replyObject);
-                        if (iterator.getSsn() == replyObject.getSsn()){
-                            System.out.println("In 2");
-                            if (iterator.getIntrestRate().compareTo(replyObject.getIntrestRate()) < 0) {
-                                System.out.println("In 3");
-                                replyObject.setTimestamp(iterator.getTimestamp());
-                                System.out.println(iterator + "  " + replyObject);
-                                waitingList.remove(i);
-                                waitingList.add(replyObject);
-                            }
-                            existsFlag = true;
-                        }
-                    }
                     
-                    // Add SSN if it did not already exist
-                    if (!existsFlag){
-                       System.out.println("In X");
-                       replyObject.setTimestamp(currentDatetimeMilliseconds);
-                       waitingList.add(replyObject);
-                    }
-                    
-                    // Run through the SSNs we've got and send out all those who
-                    // exceed max wait time
-                    for (int i = 0; i < waitingList.size(); i++) {
-                        System.out.println("In Y");
-                        iterator = waitingList.get(i);
-                        System.out.println(iterator);
-                        pastDatetimeMilliseconds = iterator.getTimestamp();
-                        if(pastDatetimeMilliseconds + 60000 > currentDatetimeMilliseconds
-                        && pastDatetimeMilliseconds != currentDatetimeMilliseconds) {
-                            sendBestQuote(replyObject);
-                            waitingList.remove(i);
-                        }
-                    }
-                    
-                    System.out.println(" [x] Received body and added to list" + currentDatetimeMilliseconds + "  " + pastDatetimeMilliseconds);
+                    System.out.println(" [x] Received body and added to list");
                 } catch (ClassNotFoundException e) {
                     System.out.println(e.getMessage());
                     e.printStackTrace();
                 }
             }
+
+            
         };
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
     
     public static List<ReplyObject> getWaitingList () {
-        return waitingListPrime;
+        return waitingList;
     }
     public static void sendBestQuote(ReplyObject replyObject) throws IOException {
         Connection connection = rabbitMQUtil.connectToRabbitMQ();
@@ -126,5 +86,68 @@ public class Aggregator {
             //channel.exchangeDeclare("Group4.GetBanks","fanout");
             channel.basicPublish("", QUEUE_NAME_SEND, null, StringByteHelper.fromObjectToByteArray(replyObject));
         }
+    }
+
+    private static void messageMediator() throws IOException {
+        BigDecimal bd = new BigDecimal(0); // blaaaaaaaargh :(
+        ReplyObject iterator = new ReplyObject("",0,bd); // Duh
+        boolean existsFlag = false; // Used to determine if SSN is already in
+        long pastDatetimeMilliseconds = 0; // Ditto
+        while(true) {
+            Date currentDatetime = new Date(); // If no SSN is in already we gotta put on a timestamp
+            long currentDatetimeMilliseconds = currentDatetime.getTime(); // Used to check how time has passed
+            
+            for (int i = 0; i < waitingList.size(); i++) {
+                System.out.println("Sending burst");
+                iterator = waitingList.get(i);
+                System.out.println(iterator);
+                pastDatetimeMilliseconds = iterator.getTimestamp();
+                if(pastDatetimeMilliseconds + 60000 > currentDatetimeMilliseconds
+                && pastDatetimeMilliseconds != currentDatetimeMilliseconds) {
+                    sendBestQuote(iterator);
+                    waitingList.remove(i);
+                }
+            }
+            try {
+                Thread.sleep(60000);                 //1000 milliseconds is one second.
+            } catch(InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+    private static void addNewSSN(boolean existsFlag, ReplyObject replyObject, long currentDatetimeMilliseconds) {
+        // Add SSN if it did not already exist
+        if (!existsFlag){
+           System.out.println("Adding new SSN...");
+           replyObject.setTimestamp(currentDatetimeMilliseconds);
+           waitingList.add(replyObject);
+        }
+    }
+    private static boolean addExistingSSN(ReplyObject replyObject, long currentDatetimeMilliseconds) {
+        boolean existsFlag = false;
+        BigDecimal bd = new BigDecimal(0); // blaaaaaaaargh :(
+        ReplyObject iterator = new ReplyObject("",0,bd); // Duh
+        
+        // First check if we got a matching SSN, AKA we already had
+        // one response for a user and thus need to compare which
+        // interest rate is better.
+        // Two ifs for clarity and because we need to make sure we
+        // don't make duplicate SSNs
+        for (int i = 0; i < waitingList.size(); i++) {
+            iterator = waitingList.get(i);
+            System.out.println("Checking for matching SSNs...");
+            if (iterator.getSsn() == replyObject.getSsn()){
+                System.out.println("Matching SSN found...");
+                if (iterator.getIntrestRate().compareTo(replyObject.getIntrestRate()) < 0) {
+                    System.out.println("Better interest rate found...");
+                    replyObject.setTimestamp(iterator.getTimestamp());
+                    System.out.println(iterator + "  " + replyObject);
+                    waitingList.remove(i);
+                    waitingList.add(replyObject);
+                }
+                existsFlag = true;
+            }
+        }
+        return existsFlag;
     }
 }
