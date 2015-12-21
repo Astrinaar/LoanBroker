@@ -36,7 +36,11 @@ public class MessageImpl implements Message {
 
         while (replyObject == null) {
         }
-        return replyObject;
+
+        if (replyObject.getSsn()==Integer.parseInt(ssn)) {
+            return replyObject;
+        }
+        return null;
 
     }
 

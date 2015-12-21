@@ -1,4 +1,4 @@
-package com.Banks.WebserviceBank;
+package com.Main.MQBank;
 
 import com.Model.LoanObject;
 import com.Util.RabbitMQUtil;

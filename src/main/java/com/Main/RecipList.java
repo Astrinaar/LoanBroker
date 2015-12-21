@@ -34,6 +34,14 @@ public class RecipList {
                         if (bank.equals("bankRabbitMQ")) {
                             startSendToMQ("bankRabbitMQTranslator", loanObject);
                         }
+
+                        if (bank.equals("bankXml")) {
+                            startSendToMQ("bankTranslator", loanObject);
+                        }
+
+                        if (bank.equals("bankWebservice")) {
+                            startSendToMQ("webserviceBankTranslator", loanObject);
+                        }
                     }
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();

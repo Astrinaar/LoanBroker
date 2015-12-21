@@ -1,6 +1,6 @@
 package com.Main;
 
-import com.Banks.WebserviceBank.BankWebserviceImpl;
+import com.Webservice.WebserviceBank.BankWebserviceImpl;
 
 import javax.xml.ws.Endpoint;
 
