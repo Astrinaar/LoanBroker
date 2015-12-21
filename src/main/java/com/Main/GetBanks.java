@@ -26,7 +26,7 @@ public class GetBanks {
                 try {
                     LoanObject loanObject = (LoanObject)StringByteHelper.fromByteArrayToObject(body);
                     System.out.println(" [x] Received '" + loanObject.toString() + "'");
-                    sendBankToRuleBase(loanObject);
+                    sendRequestToRuleBase(loanObject);
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -36,7 +36,7 @@ public class GetBanks {
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    public static void sendBankToRuleBase(LoanObject loanObject) {
+    public static void sendRequestToRuleBase(LoanObject loanObject) {
         RuleBaseImplService sis = new RuleBaseImplService();
         RuleBase si = sis.getRuleBaseImplPort();
         try {
