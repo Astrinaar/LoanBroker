@@ -24,18 +24,15 @@ import java.util.List;
  *
  * @author Sotof
  */
-public class Aggregator {
+public class Aggregator extends Thread {
     private final static String QUEUE_NAME_RECEIVE = "aggregator";
+    private final static String QUEUE_NAME_SEND = "finalReply";
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     static List<ReplyObject> waitingList = new ArrayList<ReplyObject>(); // List of pending banks
-    static int waitingTime = 60000;
 
-    public static void main(String[] argv) throws IOException {
-        getBestQuote();
-        messageMediator();
-    }
 
-    public static void getBestQuote() throws IOException {
+    public static void main(String[] argv) throws IOException{
+
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
@@ -43,17 +40,13 @@ public class Aggregator {
                     throws IOException {
                 try {
                     ReplyObject replyObject = (ReplyObject)StringByteHelper.fromByteArrayToObject(body);
-                    
-                    Date currentDatetime = new Date(); // If no SSN is in already we gotta put on a timestamp
-                    boolean existsFlag = false; // Used to determine if SSN is already in
-                    long currentDatetimeMilliseconds = currentDatetime.getTime(); // Used to check how time has passed
-                    
-                    existsFlag = addExistingSSN(replyObject, currentDatetimeMilliseconds);
-                    addNewSSN(existsFlag, replyObject, currentDatetimeMilliseconds);
-                    
-                    
-                    
-                    System.out.println(" [x] Received body and added to list");
+                    if (waitingList.isEmpty()){waitingList.add(replyObject);
+                               System.out.println("Object added to Array");}
+
+                    else {
+                        if(replyObject.getSsn().equals(waitingList.get(0).getSsn())){waitingList.add(replyObject);}
+                    }
+
                 } catch (ClassNotFoundException e) {
                     System.out.println(e.getMessage());
                     e.printStackTrace();
@@ -63,84 +56,48 @@ public class Aggregator {
             
         };
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
-    }
+        Thread t = new Thread(){
+            public void run(){
 
+                if (!waitingList.isEmpty()){
+                ReplyObject finalReply = waitingList.get(0);
 
-    public static void sendBestQuote(ReplyObject replyObject) throws IOException {
-        Connection connection = rabbitMQUtil.connectToRabbitMQ();
-        if (connection != null) {
-            //String returnedCreditScore = getCreditScore(replyObject.getSsn());
-            System.out.println(" [x] Received '" + replyObject);
-            Channel channel = connection.createChannel();
-            channel.queueDeclare(replyObject.getSsn(), false, false, false,null);
+                for (ReplyObject reply: waitingList) {
 
-            
-            
-            //channel.exchangeDeclare("Group4.GetBanks","fanout");
-            channel.basicPublish("", replyObject.getSsn(), null, StringByteHelper.fromObjectToByteArray(replyObject));
-        }
-    }
-
-    private static void messageMediator() throws IOException {
-        BigDecimal bd = new BigDecimal(0); // blaaaaaaaargh :(
-        ReplyObject iterator = new ReplyObject("","",bd); // Duh
-        boolean existsFlag = false; // Used to determine if SSN is already in
-        long pastDatetimeMilliseconds = 0; // Ditto
-        while(true) {
-            Date currentDatetime = new Date(); // If no SSN is in already we gotta put on a timestamp
-            long currentDatetimeMilliseconds = currentDatetime.getTime(); // Used to check how time has passed
-            
-            for (int i = 0; i < waitingList.size(); i++) {
-                System.out.println("Sending burst");
-                iterator = waitingList.get(i);
-                System.out.println(iterator);
-                pastDatetimeMilliseconds = iterator.getTimestamp();
-                if(pastDatetimeMilliseconds + waitingTime > currentDatetimeMilliseconds
-                && pastDatetimeMilliseconds != currentDatetimeMilliseconds) {
-                    sendBestQuote(iterator);
-                    waitingList.remove(i);
+                   int result = reply.getInterestRate().compareTo(finalReply.getInterestRate());
+                   if (result>1) {finalReply = reply;}
                 }
-            }
+
+                try {
+                    sendFinalReply(finalReply);
+                    waitingList.clear();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }}
+        };
+
+        while (true){
             try {
-                Thread.sleep(waitingTime);                 //1000 milliseconds is one second.
-            } catch(InterruptedException ex) {
-                Thread.currentThread().interrupt();
+                t.start();
+                t.sleep(60000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
+
+
+
+
     }
-    private static void addNewSSN(boolean existsFlag, ReplyObject replyObject, long currentDatetimeMilliseconds) {
-        // Add SSN if it did not already exist
-        if (!existsFlag){
-           System.out.println("Adding new SSN...");
-           replyObject.setTimestamp(currentDatetimeMilliseconds);
-           waitingList.add(replyObject);
+
+    public static void sendFinalReply(ReplyObject replyObject) throws  IOException{
+        RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
+        Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_SEND);
+
+        channel.basicPublish("",QUEUE_NAME_SEND, null, StringByteHelper.fromObjectToByteArray(replyObject));
+
         }
-    }
-    private static boolean addExistingSSN(ReplyObject replyObject, long currentDatetimeMilliseconds) {
-        boolean existsFlag = false;
-        BigDecimal bd = new BigDecimal(0); // blaaaaaaaargh :(
-        ReplyObject iterator = new ReplyObject("","",bd); // Duh
-        
-        // First check if we got a matching SSN, AKA we already had
-        // one response for a user and thus need to compare which
-        // interest rate is better.
-        // Two ifs for clarity and because we need to make sure we
-        // don't make duplicate SSNs
-        for (int i = 0; i < waitingList.size(); i++) {
-            iterator = waitingList.get(i);
-            System.out.println("Checking for matching SSNs...");
-            if (iterator.getSsn() == replyObject.getSsn()){
-                System.out.println("Matching SSN found...");
-                if (iterator.getInterestRate().compareTo(replyObject.getInterestRate()) < 0) {
-                    System.out.println("Better interest rate found...");
-                    replyObject.setTimestamp(iterator.getTimestamp());
-                    System.out.println(iterator + "  " + replyObject);
-                    waitingList.remove(i);
-                    waitingList.add(replyObject);
-                }
-                existsFlag = true;
-            }
-        }
-        return existsFlag;
-    }
+
+
 }
