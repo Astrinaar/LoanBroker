@@ -1,19 +1,22 @@
 package com.Main.BankRecievers;
 
-import com.Model.LoanObject;
+
 import com.Model.ReplyObject;
 import com.Util.RabbitMQUtil;
 import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
+import java.io.StringWriter;
 import java.util.concurrent.TimeoutException;
 
 public class XMLReceiver {
@@ -28,15 +31,16 @@ public class XMLReceiver {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
-                //try {
-                    //LoanObject loanObject = (LoanObject) StringByteHelper.fromByteArrayToObject(body);
+
                     System.out.println(" [x] Received '" + body.toString() + "'");
-                    ReplyObject replyObject = translate(body);
-                    startSendToMQ(replyObject);
-               // } catch (ClassNotFoundException e) {
-                   // e.printStackTrace();
-                   // return;
-                //}
+
+                try {
+                    translate(bytesToXml(body));
+                } catch (SAXException e) {
+                    e.printStackTrace();
+                } catch (ParserConfigurationException e) {
+                    e.printStackTrace();
+                }
             }
         };
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
@@ -54,20 +58,33 @@ public class XMLReceiver {
         }
     }
 
-    public void translateXmlToObject(byte[] bytes) {
 
+    public static Document bytesToXml(byte[] body)
+            throws SAXException, ParserConfigurationException, IOException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        return builder.parse(new ByteArrayInputStream(body));
     }
 
 
-    public static ReplyObject translate(byte[] body){
-        String reply = new String(body, StandardCharsets.UTF_8);
-        Scanner scanner = new Scanner(reply);
-        int ssnNr = scanner.nextInt();
-        BigDecimal interestRate = scanner.nextBigDecimal();
-        scanner.skip(",");
-        String ssnStr =""+ ssnNr;
-        String ssn = ssnStr.substring(0, 6) + "-" + ssnStr.substring(6, ssnStr.length());
+    public static ReplyObject translate(Document doc){
+        TransformerFactory tf = TransformerFactory.newInstance();
+        Transformer transformer = null;
 
-        return new ReplyObject("bankXml", ssn, interestRate);
+        ReplyObject replyObject = null;
+        try {
+            transformer = tf.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(doc), new StreamResult(writer));
+            String output = writer.getBuffer().toString().replaceAll("\n|\r", "");
+            System.out.println(output);
+            return replyObject;
+        } catch (TransformerConfigurationException e) {
+            e.printStackTrace();
+        } catch (TransformerException e) {
+            e.printStackTrace();
+        }
+          return null;
     }
 }

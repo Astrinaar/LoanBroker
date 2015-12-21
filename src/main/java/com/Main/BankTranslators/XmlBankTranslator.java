@@ -5,7 +5,20 @@ import com.Util.RabbitMQUtil;
 import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
 import org.json.JSONObject;
+import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
@@ -24,8 +37,7 @@ public class XmlBankTranslator {
                 try {
                     LoanObject loanObject = (LoanObject) StringByteHelper.fromByteArrayToObject(body);
                     System.out.println(" [x] Received '" + loanObject.toString() + "'");
-                    JSONObject loanRequestJSON = JSONTranslator(loanObject);
-                    startSendToMQ(loanRequestJSON);
+                    startSendToMQ(loanObject);
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                     return;
@@ -36,26 +48,53 @@ public class XmlBankTranslator {
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    public static JSONObject JSONTranslator(LoanObject loanObject) {
-        String stringSsn = loanObject.getSsn().replace("-", "");
-        System.out.println(stringSsn);
-        JSONObject JSONBank = new JSONObject().put("ssn", stringSsn);
-        JSONBank.put("creditScore", loanObject.getCreditScore());
-        JSONBank.put("loanAmount", loanObject.getLoanAmount());
-        JSONBank.put("loanDuration", loanObject.getLoanDuration());
+    public static byte[] createXml(LoanObject loanObject) {
+        try {
+                 DocumentBuilderFactory dbFactory =
+                 DocumentBuilderFactory.newInstance();
+                 DocumentBuilder dBuilder =
+                    dbFactory.newDocumentBuilder();
+                 Document doc = dBuilder.newDocument();
+                 // root element
+                 Element rootElement = doc.createElement("LoanRequest");
+                 doc.appendChild(rootElement);
 
-        return JSONBank;
+                 // setting attribute to element
+                 Attr attr = doc.createAttribute("ssn");
+                 attr.setValue(loanObject.getSsn());
+
+            Attr creditScore = doc.createAttribute("creditScore");
+            creditScore.setValue(loanObject.getCreditScore());
+
+                Attr loanAmount = doc.createAttribute("loanAmount");
+            loanAmount.setValue(loanObject.getLoanAmount());
+
+                Attr loanDuration = doc.createAttribute("loanDuration");
+            loanDuration.setValue(loanObject.getLoanAmount());
+
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            ByteArrayOutputStream bos=new ByteArrayOutputStream();
+            DOMSource source = new DOMSource(doc);
+             StreamResult result=new StreamResult(bos);
+             transformer.transform(source, result);
+         return bos.toByteArray();
+        } catch (Exception e) {
+                e.printStackTrace();
+            return null;
+             }
+
 
     }
 
-    public static void startSendToMQ(JSONObject JSONBank) throws IOException {
+    public static void startSendToMQ(LoanObject loanObject) throws IOException {
         RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
         Channel channel = rabbitMQUtil.createExchange(EXCHANGE_NAME_SEND);
 
         AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties().builder();
         properties.replyTo("xmlReply4");
 
-        channel.basicPublish(EXCHANGE_NAME_SEND, "", properties.build(), JSONBank.toString().getBytes());
+        channel.basicPublish(EXCHANGE_NAME_SEND, "", properties.build(), createXml(loanObject));
         try {
             channel.close();
         } catch (TimeoutException e) {
