@@ -5,9 +5,6 @@
  */
 package com.Main;
 
-import com.Client.CreditScoreService.CreditScoreService;
-import com.Client.CreditScoreService.CreditScoreService_Service;
-import com.Model.LoanObject;
 import com.Model.ReplyObject;
 import com.Util.RabbitMQUtil;
 import com.Util.StringByteHelper;
@@ -21,7 +18,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -135,7 +131,7 @@ public class Aggregator {
             System.out.println("Checking for matching SSNs...");
             if (iterator.getSsn() == replyObject.getSsn()){
                 System.out.println("Matching SSN found...");
-                if (iterator.getIntrestRate().compareTo(replyObject.getIntrestRate()) < 0) {
+                if (iterator.getInterestRate().compareTo(replyObject.getInterestRate()) < 0) {
                     System.out.println("Better interest rate found...");
                     replyObject.setTimestamp(iterator.getTimestamp());
                     System.out.println(iterator + "  " + replyObject);

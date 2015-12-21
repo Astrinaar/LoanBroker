@@ -37,12 +37,12 @@ public class ReplyObject implements Serializable {
         this.ssn = ssn;
     }
 
-    public BigDecimal getIntrestRate() {
+    public BigDecimal getInterestRate() {
         return interestRate;
     }
 
-    public void setIntrestRate(BigDecimal intrestRate) {
-        this.interestRate = intrestRate;
+    public void setIntrestRate(BigDecimal interestRate) {
+        this.interestRate = interestRate;
     }
     
     public long getTimestamp() {
@@ -56,7 +56,7 @@ public class ReplyObject implements Serializable {
     @Override
     public String toString() {
         return "ReplyObject{" +
-                "intrestRate=" + interestRate +
+                "interestRate=" + interestRate +
                 ", ssn=" + ssn +
                 ", bankName='" + bankName + '\'' +
                 '}';

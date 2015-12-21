@@ -1,17 +1,22 @@
 package com.Main.BankTranslators;
 
+import com.Client.WebserviceBankClient.BankWebservice;
+import com.Client.WebserviceBankClient.BankWebserviceImplService;
+import com.Client.WebserviceBankClient.IOException_Exception;
 import com.Model.LoanObject;
+import com.Model.ReplyObject;
 import com.Util.RabbitMQUtil;
 import com.Util.StringByteHelper;
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.concurrent.TimeoutException;
 
 public class WebserviceBankTranslator {
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     private final static String QUEUE_NAME_RECEIVE = "webserviceBankTranslator";
-    private final static String QUEUE_NAME_SEND = "webserviceBank";
+    private final static String QUEUE_NAME_SEND = "aggregator";
 
     public static void main(String[] argv) throws IOException {
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
@@ -22,33 +27,42 @@ public class WebserviceBankTranslator {
                 try {
                     LoanObject loanObject = (LoanObject) StringByteHelper.fromByteArrayToObject(body);
                     System.out.println(" [x] Received '" + loanObject.toString() + "'");
-                    startSendToMQ(loanObject);
+                   ReplyObject replyObject = getCreditScoreFromWebserviceBank(loanObject);
+                    startSendToMQ(replyObject);
 
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }
         };
+
+
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    public static void startSendToMQ(LoanObject loanObject) throws IOException {
+    public static void startSendToMQ(ReplyObject replyObject) throws IOException {
         RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
         Channel channel = rabbitMQUtil.createExchange(QUEUE_NAME_SEND);
 
-        AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties().builder();
-        properties.replyTo("webserviceBank4");
 
-        String message = "" + loanObject.getSsn()
-                + "," + loanObject.getCreditScore()
-                + "," + loanObject.getLoanAmount()
-                + "," + loanObject.getLoanDuration();
-
-        channel.basicPublish("", QUEUE_NAME_SEND, null, message.getBytes());
+        System.out.println("Sending: "+ replyObject.toString());
+        channel.basicPublish("", QUEUE_NAME_SEND, null, StringByteHelper.fromObjectToByteArray(replyObject));
         try {
             channel.close();
         } catch (TimeoutException e) {
             e.printStackTrace();
+        }
+    }
+
+    public static ReplyObject getCreditScoreFromWebserviceBank(LoanObject loanObject) {
+        BankWebserviceImplService sis = new BankWebserviceImplService();
+        BankWebservice si = sis.getBankWebserviceImplPort();
+        try {
+            BigDecimal interestRate = si.getInterestRate(loanObject.getSsn(),loanObject.getCreditScore(),loanObject.getLoanAmount(),loanObject.getLoanDuration());
+            return new ReplyObject("bankWebservice",loanObject.getSsn(),interestRate);
+        } catch (IOException_Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }
