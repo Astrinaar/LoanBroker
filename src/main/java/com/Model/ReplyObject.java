@@ -10,11 +10,11 @@ import java.util.Date;
 public class ReplyObject implements Serializable {
 
     private BigDecimal interestRate;
-    private int ssn;
+    private String ssn;
     private String bankName;
     private long timestamp;
 
-    public ReplyObject(String bankName, int ssn, BigDecimal interestRate) {
+    public ReplyObject(String bankName, String ssn, BigDecimal interestRate) {
         this.bankName = bankName;
         this.ssn = ssn;
         this.interestRate = interestRate;
@@ -29,11 +29,11 @@ public class ReplyObject implements Serializable {
         this.bankName = bankName;
     }
 
-    public int getSsn() {
+    public String getSsn() {
         return ssn;
     }
 
-    public void setSsn(int ssn) {
+    public void setSsn(String ssn) {
         this.ssn = ssn;
     }
 

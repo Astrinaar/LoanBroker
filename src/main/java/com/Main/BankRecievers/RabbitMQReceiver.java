@@ -28,16 +28,10 @@ public class RabbitMQReceiver {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
-                try {
-                    LoanObject loanObject = (LoanObject) StringByteHelper.fromByteArrayToObject(body);
-                    System.out.println(" [x] Received '" + loanObject.toString() + "'");
+
                     ReplyObject replyObject = translate(body);
+                    System.out.println(" [x] Received '" + replyObject.toString() + "'");
                     startSendToMQ(replyObject);
-
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-
             }
         };
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
@@ -56,13 +50,17 @@ public class RabbitMQReceiver {
     }
 
     public static ReplyObject translate(byte[] body){
-        String reply = new String(body, StandardCharsets.UTF_8);
-        Scanner scanner = new Scanner(reply);
-        int ssn = scanner.nextInt();
-        BigDecimal interestRate = scanner.nextBigDecimal();
-        scanner.skip(",");
 
-        ReplyObject replyObject = new ReplyObject("RabbitMQ", ssn, interestRate);
+        String reply = new String(body, StandardCharsets.UTF_8);
+
+        String[] values = reply.split(",");
+
+        String ssn = values[0];
+        BigDecimal interestRate = new BigDecimal(values[1]);
+        String bankName = "RabbitMQ";
+
+        ReplyObject replyObject = new ReplyObject(bankName, ssn, interestRate);
+        System.out.println("Ready to send: "+replyObject.toString());
         return replyObject;
     }
 }

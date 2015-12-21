@@ -11,7 +11,7 @@ import java.util.concurrent.TimeoutException;
 public class WebserviceBankTranslator {
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     private final static String QUEUE_NAME_RECEIVE = "webserviceBankTranslator";
-    private final static String EXCHANGE_NAME_SEND = "webserviceBank";
+    private final static String QUEUE_NAME_SEND = "webserviceBank";
 
     public static void main(String[] argv) throws IOException {
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
@@ -34,7 +34,7 @@ public class WebserviceBankTranslator {
 
     public static void startSendToMQ(LoanObject loanObject) throws IOException {
         RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-        Channel channel = rabbitMQUtil.createExchange(EXCHANGE_NAME_SEND);
+        Channel channel = rabbitMQUtil.createExchange(QUEUE_NAME_SEND);
 
         AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties().builder();
         properties.replyTo("webserviceBank4");
@@ -44,7 +44,7 @@ public class WebserviceBankTranslator {
                 + "," + loanObject.getLoanAmount()
                 + "," + loanObject.getLoanDuration();
 
-        channel.basicPublish(EXCHANGE_NAME_SEND, "", properties.build(), message.getBytes());
+        channel.basicPublish("", QUEUE_NAME_SEND, null, message.getBytes());
         try {
             channel.close();
         } catch (TimeoutException e) {

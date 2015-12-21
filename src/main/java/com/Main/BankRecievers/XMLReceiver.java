@@ -62,9 +62,11 @@ public class XMLReceiver {
     public static ReplyObject translate(byte[] body){
         String reply = new String(body, StandardCharsets.UTF_8);
         Scanner scanner = new Scanner(reply);
-        int ssn = scanner.nextInt();
+        int ssnNr = scanner.nextInt();
         BigDecimal interestRate = scanner.nextBigDecimal();
         scanner.skip(",");
+        String ssnStr =""+ ssnNr;
+        String ssn = ssnStr.substring(0, 6) + "-" + ssnStr.substring(6, ssnStr.length());
 
         return new ReplyObject("bankXml", ssn, interestRate);
     }

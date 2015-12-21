@@ -1,14 +1,10 @@
 package com.Main.MQBank;
 
-import com.Model.LoanObject;
-import com.Util.RabbitMQUtil;
-import com.Util.StringByteHelper;
-import com.rabbitmq.client.*;
-import org.json.JSONObject;
 
+import com.Util.RabbitMQUtil;
+import com.rabbitmq.client.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -17,42 +13,45 @@ import java.util.concurrent.TimeoutException;
 public class BankRabbitMQ {
 
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-    private final static String EXCHANGE_NAME_RECEIVE = "RabbitMQTranslator";
+    private final static String EXCHANGE_NAME_RECEIVE = "bankRabbitMQ";
 
     public static void main(String[] argv) throws IOException {
-        Channel channel = rabbitMQUtil.createQueue(EXCHANGE_NAME_RECEIVE);
-        Consumer consumer = new DefaultConsumer(channel) {
+        Channel channel = rabbitMQUtil.createExchange(EXCHANGE_NAME_RECEIVE);
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, EXCHANGE_NAME_RECEIVE, "");
+
+               Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 String EXCHANGE_NAME_SEND;
+                System.out.println("Received");
                 if(properties.getReplyTo() != null) {
                   EXCHANGE_NAME_SEND = properties.getReplyTo().intern();
-                    System.out.println("Received");
                 }
                 else {EXCHANGE_NAME_SEND = EXCHANGE_NAME_RECEIVE; }
 
 
 
                 String reply = new String(body, StandardCharsets.UTF_8);
-                Scanner scanner = new Scanner(reply);
-                int ssn1 = scanner.nextInt();
-                int ssn2 = scanner.nextInt();
-                int creditScore = scanner.nextInt();
-                int loanAmount = scanner.nextInt();
-                int loanDuration = scanner.nextInt();
-                scanner.skip(",");
-                scanner.skip("-");
+                System.out.println(reply);
 
-                String ssn = "" + ssn1 + ssn2;
+                String[] values = reply.split(",");
+
+                String ssn = values[0];
+                int creditScore = Integer.parseInt(values[1]);
+                int loanAmount = Integer.parseInt(values[2]);
+                int loanDuration = Integer.parseInt(values[3]);
+
+
                 int interestRate = calcInterestRate(loanDuration,creditScore, loanAmount);
 
-                String replyMessage = ""+ ssn + "," + interestRate;
+                String replyMessage = ssn + "," + "" + interestRate;
 
                 startSendToMQ(EXCHANGE_NAME_SEND,replyMessage);
             }
         };
-        channel.basicConsume(EXCHANGE_NAME_RECEIVE, true, consumer);
+        channel.basicConsume(queueName, true, consumer);
     }
 
     public static void startSendToMQ(String channelName, String replyMessage) throws IOException {
@@ -60,7 +59,7 @@ public class BankRabbitMQ {
         Channel channel = rabbitMQUtil.createQueue(channelName);
 
 
-
+        System.out.println(channelName);
         channel.basicPublish("", channelName, null, replyMessage.getBytes());
         try {
             channel.close();

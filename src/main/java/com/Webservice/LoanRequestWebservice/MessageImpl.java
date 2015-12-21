@@ -17,9 +17,9 @@ import java.util.concurrent.TimeoutException;
 public class MessageImpl implements Message {
 
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
-    private final static String QUEUE_NAME_RECEIVE = "bestQuote";
     private final static String QUEUE_NAME_SEND = "loanRequest";
     ReplyObject replyObject = null;
+    LoanObject loanObject;
 
 
     @Override
@@ -35,17 +35,15 @@ public class MessageImpl implements Message {
         }
 
         while (replyObject == null) {
-        }
 
-        if (replyObject.getSsn()==Integer.parseInt(ssn)) {
-            return replyObject;
         }
-        return null;
+        return replyObject;
+
 
     }
 
     public void startSendToMQ(String ssn, String loanAmount, String loanDurationInMonths) throws IOException {
-        LoanObject loanObject = new LoanObject(ssn, null, loanAmount, loanDurationInMonths, null);
+        loanObject = new LoanObject(ssn, null, loanAmount, loanDurationInMonths, null);
         RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
 
         Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_SEND);
@@ -64,7 +62,7 @@ public class MessageImpl implements Message {
 
     public void lookForReply()throws IOException {
 
-        Channel channel = rabbitMQUtil.createQueue(QUEUE_NAME_RECEIVE);
+        Channel channel = rabbitMQUtil.createQueue(loanObject.getSsn());
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
@@ -77,7 +75,12 @@ public class MessageImpl implements Message {
                 }
             }
         };
-        channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
+        channel.basicConsume(loanObject.getSsn(), true, consumer);
+        try {
+            channel.close();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
     }
 
 }

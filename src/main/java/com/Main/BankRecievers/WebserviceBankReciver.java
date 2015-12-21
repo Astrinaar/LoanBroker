@@ -59,7 +59,7 @@ public class WebserviceBankReciver {
         BankWebservice si = sis.getBankWebserviceImplPort();
         try {
             BigDecimal interestRate = si.getInterestRate(loanObject.getSsn(),loanObject.getCreditScore(),loanObject.getLoanAmount(),loanObject.getLoanDuration());
-            return new ReplyObject("bankWebservice",Integer.getInteger(loanObject.getSsn()),interestRate);
+            return new ReplyObject("bankWebservice",loanObject.getSsn(),interestRate);
         } catch (IOException_Exception e) {
             e.printStackTrace();
             return null;

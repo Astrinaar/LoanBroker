@@ -32,7 +32,11 @@ public class JSONReceiver {
                     String reply = new String(body, StandardCharsets.UTF_8);
                     System.out.println(" [x] Received '" + reply);
                 JSONObject jsonObj = new JSONObject(reply);
-                ReplyObject replyObject = new ReplyObject("jsonBank",jsonObj.getInt("ssn"),jsonObj.getBigDecimal("interestRate"));
+                int ssnNumeral = jsonObj.getInt("ssn");
+                String ssnStr = ""+ssnNumeral;
+                String ssn = ssnStr.substring(0, 6) + "-" + ssnStr.substring(6, ssnStr.length());
+
+                ReplyObject replyObject = new ReplyObject("jsonBank",ssn,jsonObj.getBigDecimal("interestRate"));
                 startSendToMQ(replyObject);
 
             }

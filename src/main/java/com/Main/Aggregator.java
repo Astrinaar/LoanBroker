@@ -30,7 +30,6 @@ import java.util.List;
  */
 public class Aggregator {
     private final static String QUEUE_NAME_RECEIVE = "aggregator";
-    private final static String QUEUE_NAME_SEND = "bestQuote";
     static RabbitMQUtil rabbitMQUtil = new RabbitMQUtil();
     static List<ReplyObject> waitingList = new ArrayList<ReplyObject>(); // List of pending banks
     static int waitingTime = 60000;
@@ -70,28 +69,25 @@ public class Aggregator {
         channel.basicConsume(QUEUE_NAME_RECEIVE, true, consumer);
     }
 
-    
-    public static List<ReplyObject> getWaitingList () {
-        return waitingList;
-    }
+
     public static void sendBestQuote(ReplyObject replyObject) throws IOException {
         Connection connection = rabbitMQUtil.connectToRabbitMQ();
         if (connection != null) {
             //String returnedCreditScore = getCreditScore(replyObject.getSsn());
             System.out.println(" [x] Received '" + replyObject);
             Channel channel = connection.createChannel();
-            channel.queueDeclare(QUEUE_NAME_SEND, false, false, false,null);
+            channel.queueDeclare(replyObject.getSsn(), false, false, false,null);
 
             
             
             //channel.exchangeDeclare("Group4.GetBanks","fanout");
-            channel.basicPublish("", QUEUE_NAME_SEND, null, StringByteHelper.fromObjectToByteArray(replyObject));
+            channel.basicPublish("", replyObject.getSsn(), null, StringByteHelper.fromObjectToByteArray(replyObject));
         }
     }
 
     private static void messageMediator() throws IOException {
         BigDecimal bd = new BigDecimal(0); // blaaaaaaaargh :(
-        ReplyObject iterator = new ReplyObject("",0,bd); // Duh
+        ReplyObject iterator = new ReplyObject("","",bd); // Duh
         boolean existsFlag = false; // Used to determine if SSN is already in
         long pastDatetimeMilliseconds = 0; // Ditto
         while(true) {
@@ -127,7 +123,7 @@ public class Aggregator {
     private static boolean addExistingSSN(ReplyObject replyObject, long currentDatetimeMilliseconds) {
         boolean existsFlag = false;
         BigDecimal bd = new BigDecimal(0); // blaaaaaaaargh :(
-        ReplyObject iterator = new ReplyObject("",0,bd); // Duh
+        ReplyObject iterator = new ReplyObject("","",bd); // Duh
         
         // First check if we got a matching SSN, AKA we already had
         // one response for a user and thus need to compare which

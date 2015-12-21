@@ -42,7 +42,7 @@ public class RabbitMQTranslator {
         Channel channel = rabbitMQUtil.createExchange(EXCHANGE_NAME_SEND);
 
         AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties().builder();
-        properties.replyTo("rabbitMQreply4");
+        properties.replyTo("rabbitMQReply4");
 
         String message = "" + loanObject.getSsn()
                 + "," + loanObject.getCreditScore()
@@ -50,6 +50,7 @@ public class RabbitMQTranslator {
                 + "," + loanObject.getLoanDuration();
 
         channel.basicPublish(EXCHANGE_NAME_SEND, "", properties.build(), message.getBytes());
+        System.out.println(" [x] Sent '" + message + "'");
         try {
             channel.close();
         } catch (TimeoutException e) {

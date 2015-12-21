@@ -49,6 +49,9 @@ public class RabbitMQUtil {
         try {
             channel = connection.createChannel();
             channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+
+            System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+
             return channel;
         } catch (IOException e){
             e.printStackTrace();
